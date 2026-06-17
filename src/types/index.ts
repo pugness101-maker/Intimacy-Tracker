@@ -85,11 +85,87 @@ export interface Goals {
   connection: ConnectionGoal;
 }
 
+export type StiTestType =
+  | 'chlamydia'
+  | 'gonorrhea'
+  | 'syphilis'
+  | 'hiv'
+  | 'hepatitis_b'
+  | 'hepatitis_c'
+  | 'trichomoniasis'
+  | 'hsv1'
+  | 'hsv2'
+  | 'hpv'
+  | 'mycoplasma_genitalium'
+  | 'ureaplasma'
+  | 'other';
+
+export type StiResultStatus = 'negative' | 'positive' | 'pending' | 'inconclusive';
+
+export const STI_TEST_TYPES: StiTestType[] = [
+  'chlamydia',
+  'gonorrhea',
+  'syphilis',
+  'hiv',
+  'hepatitis_b',
+  'hepatitis_c',
+  'trichomoniasis',
+  'hsv1',
+  'hsv2',
+  'hpv',
+  'mycoplasma_genitalium',
+  'ureaplasma',
+  'other',
+];
+
+export const STI_TEST_LABELS: Record<StiTestType, string> = {
+  chlamydia: 'Chlamydia',
+  gonorrhea: 'Gonorrhea',
+  syphilis: 'Syphilis',
+  hiv: 'HIV 1/2',
+  hepatitis_b: 'Hepatitis B',
+  hepatitis_c: 'Hepatitis C',
+  trichomoniasis: 'Trichomoniasis',
+  hsv1: 'HSV-1',
+  hsv2: 'HSV-2',
+  hpv: 'HPV',
+  mycoplasma_genitalium: 'Mycoplasma Genitalium',
+  ureaplasma: 'Ureaplasma',
+  other: 'Other',
+};
+
+export const STI_RESULT_LABELS: Record<StiResultStatus, string> = {
+  negative: 'Negative',
+  positive: 'Positive',
+  pending: 'Pending',
+  inconclusive: 'Inconclusive',
+};
+
+export const STI_RESULT_STATUSES: StiResultStatus[] = [
+  'negative',
+  'positive',
+  'pending',
+  'inconclusive',
+];
+
+/** Standard panel tests (all except Other). */
+export const FULL_PANEL_STI_TESTS: StiTestType[] = STI_TEST_TYPES.filter(
+  (t) => t !== 'other'
+);
+
 export interface StiTest extends BaseRecord {
   date: string;
   provider?: string;
+  /** Legacy free-text results field */
   results?: string;
   notes: string;
+  testsPerformed?: StiTestType[];
+  testResults?: Partial<Record<StiTestType, StiResultStatus>>;
+  otherTestLabel?: string;
+  medication?: string;
+  treatmentStartDate?: string;
+  treatmentEndDate?: string;
+  followUpDate?: string;
 }
 
 export interface BirthControlReminder extends BaseRecord {

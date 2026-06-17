@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -6,11 +6,22 @@ import { Modal } from '../components/ui/Modal';
 import { PartnerForm } from '../components/forms/PartnerForm';
 import type { Partner } from '../types';
 import { formatDate, getPartnerLastIntimacy } from '../lib/utils';
+import {
+  PARTNER_SORT_LABELS,
+  sortPartners,
+  type PartnerSortOption,
+} from '../lib/sorting';
 
 export function Partners() {
   const { data, deletePartner } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Partner | null>(null);
+  const [sortBy, setSortBy] = useState<PartnerSortOption>('last_intimacy_newest');
+
+  const sortedPartners = useMemo(
+    () => sortPartners(data.partners, sortBy, data.activities),
+    [data.partners, data.activities, sortBy]
+  );
 
   const handleDelete = (p: Partner) => {
     if (confirm(`Remove ${p.nickname || p.name}? Activity logs will keep but lose the partner link.`)) {
@@ -30,6 +41,26 @@ export function Partners() {
         </button>
       </header>
 
+      {data.partners.length > 0 && (
+        <div className="filter-bar filter-bar--inline">
+          <label>
+            Sort
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as PartnerSortOption)}
+            >
+              {(Object.entries(PARTNER_SORT_LABELS) as [PartnerSortOption, string][]).map(
+                ([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                )
+              )}
+            </select>
+          </label>
+        </div>
+      )}
+
       {data.partners.length === 0 ? (
         <EmptyState
           icon="♡"
@@ -43,7 +74,7 @@ export function Partners() {
         />
       ) : (
         <div className="card-list">
-          {data.partners.map((p) => {
+          {sortedPartners.map((p) => {
             const last = getPartnerLastIntimacy(p.id, data.activities);
             return (
               <Card key={p.id} className="partner-card">

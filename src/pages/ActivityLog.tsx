@@ -18,10 +18,14 @@ import {
 } from '../types';
 import {
   activityMatchesCategory,
-  compareActivitiesByDateTime,
   formatActivitySchedule,
   formatDateNumeric,
 } from '../lib/utils';
+import {
+  ACTIVITY_SORT_LABELS,
+  sortActivities,
+  type ActivitySortOption,
+} from '../lib/sorting';
 
 type CategoryFilter = 'all' | ActivityCategory;
 
@@ -33,9 +37,10 @@ export function ActivityLog() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [partnerFilter, setPartnerFilter] = useState('');
+  const [sortBy, setSortBy] = useState<ActivitySortOption>('newest');
 
   const sorted = useMemo(() => {
-    let list = [...data.activities].sort(compareActivitiesByDateTime);
+    let list = [...data.activities];
 
     if (categoryFilter !== 'all') {
       list = list.filter((a) => activityMatchesCategory(a.type, categoryFilter));
@@ -50,8 +55,8 @@ export function ActivityLog() {
       list = list.filter((a) => activityInvolvesPartner(a, partnerFilter));
     }
 
-    return list;
-  }, [data.activities, categoryFilter, dateFrom, dateTo, partnerFilter]);
+    return sortActivities(list, sortBy, data.partners);
+  }, [data.activities, data.partners, categoryFilter, dateFrom, dateTo, partnerFilter, sortBy]);
 
   const handleDelete = (a: Activity) => {
     if (confirm('Delete this activity log entry?')) {
@@ -142,6 +147,22 @@ export function ActivityLog() {
             Clear filters
           </button>
         )}
+
+        <label>
+          Sort
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as ActivitySortOption)}
+          >
+            {(Object.entries(ACTIVITY_SORT_LABELS) as [ActivitySortOption, string][]).map(
+              ([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              )
+            )}
+          </select>
+        </label>
       </div>
 
       {sorted.length === 0 ? (

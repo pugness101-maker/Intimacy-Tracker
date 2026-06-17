@@ -1,5 +1,6 @@
 import type { Activity, ActivityType, AppData, Partner } from '../types';
 import { isPartnerActivity } from '../types';
+import { getStiDashboardStats } from './sti';
 import {
   averageSatisfaction,
   collectUniquePartnerIds,
@@ -217,10 +218,19 @@ export function getDashboardSummary(data: AppData) {
         date: r.nextDue!,
         label: r.title,
       })),
+    ...data.sexualHealth.stiTests
+      .filter((t) => t.followUpDate)
+      .map((t) => ({
+        type: 'sti_retest' as const,
+        date: t.followUpDate!,
+        label: 'STI retest',
+      })),
   ]
     .filter((x) => x.date >= new Date().toISOString().slice(0, 10))
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 3);
+
+  const stiStats = getStiDashboardStats(data.sexualHealth.stiTests);
 
   return {
     totalActivities: activities.length,
@@ -236,6 +246,7 @@ export function getDashboardSummary(data: AppData) {
     uniquePartnersThisMonth: getUniquePartnersInMonth(activities),
     recent,
     upcomingHealth,
+    stiStats,
   };
 }
 

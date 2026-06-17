@@ -90,6 +90,46 @@ export function Dashboard({ onGoToLog }: DashboardProps) {
         </Card>
       </div>
 
+      {summary.stiStats.lastTestDate && (
+        <section className="section">
+          <h2>STI testing</h2>
+          <div className="stat-grid stat-grid--sti">
+            <Card className="stat-card">
+              <span className="stat-card__label">Last STI test</span>
+              <span className="stat-card__value stat-card__value--sm">
+                {formatDate(summary.stiStats.lastTestDate)}
+              </span>
+            </Card>
+            <Card className="stat-card">
+              <span className="stat-card__label">Last full panel</span>
+              <span className="stat-card__value stat-card__value--sm">
+                {summary.stiStats.lastFullPanelDate
+                  ? formatDate(summary.stiStats.lastFullPanelDate)
+                  : '—'}
+              </span>
+            </Card>
+            <Card className="stat-card">
+              <span className="stat-card__label">Active positives</span>
+              <span className="stat-card__value">{summary.stiStats.activePositiveCount}</span>
+            </Card>
+            <Card className="stat-card">
+              <span className="stat-card__label">Days since last test</span>
+              <span className="stat-card__value">
+                {summary.stiStats.daysSinceLastTest ?? '—'}
+              </span>
+            </Card>
+            <Card className="stat-card">
+              <span className="stat-card__label">Retest due</span>
+              <span className="stat-card__value stat-card__value--sm">
+                {summary.stiStats.retestDueDate
+                  ? formatDate(summary.stiStats.retestDueDate)
+                  : '—'}
+              </span>
+            </Card>
+          </div>
+        </section>
+      )}
+
       <section className="section">
         <h2>Recent activity</h2>
         {summary.recent.length === 0 ? (
