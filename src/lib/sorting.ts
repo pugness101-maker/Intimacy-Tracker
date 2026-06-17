@@ -62,11 +62,30 @@ function protectionRank(
   if (prefer === 'yes') {
     if (protection === 'yes') return 0;
     if (protection === 'no') return 1;
-    return 2;
+    if (protection === 'unsure') return 2;
+    return 3;
   }
   if (protection === 'no') return 0;
   if (protection === 'yes') return 1;
-  return 2;
+  if (protection === 'unsure') return 2;
+  return 3;
+}
+
+function compareSatisfaction(
+  a: Activity,
+  b: Activity,
+  direction: 'high' | 'low'
+): number {
+  const aNull = a.satisfaction == null;
+  const bNull = b.satisfaction == null;
+  if (aNull && bNull) return compareActivitiesByDateTime(a, b);
+  if (aNull) return 1;
+  if (bNull) return -1;
+  const sat =
+    direction === 'high'
+      ? b.satisfaction! - a.satisfaction!
+      : a.satisfaction! - b.satisfaction!;
+  return sat !== 0 ? sat : compareActivitiesByDateTime(a, b);
 }
 
 export function sortActivities(
@@ -100,15 +119,9 @@ export function sortActivities(
         return cmp !== 0 ? cmp : compareActivitiesByDateTime(a, b);
       });
     case 'satisfaction_high':
-      return list.sort((a, b) => {
-        const sat = b.satisfaction - a.satisfaction;
-        return sat !== 0 ? sat : compareActivitiesByDateTime(a, b);
-      });
+      return list.sort((a, b) => compareSatisfaction(a, b, 'high'));
     case 'satisfaction_low':
-      return list.sort((a, b) => {
-        const sat = a.satisfaction - b.satisfaction;
-        return sat !== 0 ? sat : compareActivitiesByDateTime(a, b);
-      });
+      return list.sort((a, b) => compareSatisfaction(a, b, 'low'));
     case 'protection_yes':
       return list.sort((a, b) => {
         const rank = protectionRank(a.protection, 'yes') - protectionRank(b.protection, 'yes');

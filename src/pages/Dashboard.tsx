@@ -10,6 +10,7 @@ import {
   getPartnerLinkLabel,
 } from '../components/activity/PartnerChips';
 import { ACTIVITY_TYPE_LABELS, type Activity } from '../types';
+import { formatSatisfactionText } from '../lib/activityDisplay';
 import {
   formatDate,
   formatDateNumeric,
@@ -203,7 +204,7 @@ function ActivityMini({ activity }: { activity: Activity }) {
       </div>
       <div className="activity-mini__meta">
         <span>{formatDuration(activity.durationMinutes)}</span>
-        <span>★ {activity.satisfaction}</span>
+        <span>{formatSatisfactionText(activity.satisfaction)}</span>
       </div>
     </Card>
   );

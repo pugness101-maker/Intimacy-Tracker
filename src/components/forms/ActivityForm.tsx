@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
+  ACTIVITY_BIRTH_CONTROL_LABELS,
+  ACTIVITY_BIRTH_CONTROL_METHODS,
   ACTIVITY_CATEGORIES,
   ACTIVITY_TYPE_LABELS,
+  PROTECTION_LABELS,
   isPartnerActivity,
   supportsPartnerLink,
   type Activity,
+  type ActivityBirthControlMethod,
   type ActivityType,
   type ProtectionStatus,
 } from '../../types';
@@ -20,6 +24,8 @@ interface ActivityFormProps {
   initial?: Activity;
   onDone: () => void;
 }
+
+const PARTNER_PROTECTION_OPTIONS: ProtectionStatus[] = ['yes', 'no', 'unsure'];
 
 export function ActivityForm({ initial, onDone }: ActivityFormProps) {
   const { data, addActivity, updateActivity } = useApp();
@@ -39,25 +45,30 @@ export function ActivityForm({ initial, onDone }: ActivityFormProps) {
       ? initial.peopleCount
       : 2
   );
+  const [location, setLocation] = useState(initial?.location ?? '');
+  const [recordSatisfaction, setRecordSatisfaction] = useState(
+    initial?.satisfaction != null
+  );
   const [satisfaction, setSatisfaction] = useState(initial?.satisfaction ?? 7);
   const [protection, setProtection] = useState<ProtectionStatus>(
-    initial?.protection ?? 'na'
+    initial?.protection && initial.protection !== 'na'
+      ? initial.protection
+      : 'unsure'
   );
+  const [birthControlMethod, setBirthControlMethod] =
+    useState<ActivityBirthControlMethod>(initial?.birthControlMethod ?? 'none');
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
   const duration = calculateDurationMinutes(startTime, endTime);
   const showPartnerLink = supportsPartnerLink(type);
-  const showProtection = isPartnerActivity(type);
+  const showPartnerFields = isPartnerActivity(type);
   const autoPeopleCount = partnerIds.length;
 
   useEffect(() => {
     if (!showPartnerLink) {
       setPartnerIds([]);
     }
-    if (!showProtection) {
-      setProtection('na');
-    }
-  }, [showPartnerLink, showProtection]);
+  }, [showPartnerLink]);
 
   const togglePartner = (id: string) => {
     setPartnerIds((prev) =>
@@ -80,8 +91,10 @@ export function ActivityForm({ initial, onDone }: ActivityFormProps) {
       type,
       partnerIds: ids,
       peopleCount: showPartnerLink ? peopleCount : null,
-      satisfaction,
-      protection: showProtection ? protection : ('na' as ProtectionStatus),
+      location: location.trim(),
+      satisfaction: recordSatisfaction ? satisfaction : null,
+      protection: showPartnerFields ? protection : ('na' as ProtectionStatus),
+      birthControlMethod: showPartnerFields ? birthControlMethod : ('none' as ActivityBirthControlMethod),
       notes,
     };
     if (initial) {
@@ -145,6 +158,15 @@ export function ActivityForm({ initial, onDone }: ActivityFormProps) {
         </select>
       </label>
 
+      <label>
+        Location <span className="label-optional">Optional</span>
+        <input
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="Home, hotel, etc."
+        />
+      </label>
+
       {showPartnerLink && data.partners.length > 0 && (
         <fieldset className="fieldset partner-multi">
           <legend>Partners (select all that apply)</legend>
@@ -188,36 +210,67 @@ export function ActivityForm({ initial, onDone }: ActivityFormProps) {
         </div>
       )}
 
-      {showProtection && (
-        <fieldset className="fieldset fieldset--inline">
-          <legend>Protection used</legend>
-          <div className="radio-group">
-            {(['yes', 'no', 'na'] as ProtectionStatus[]).map((v) => (
-              <label key={v} className="radio-pill">
-                <input
-                  type="radio"
-                  name="protection"
-                  value={v}
-                  checked={protection === v}
-                  onChange={() => setProtection(v)}
-                />
-                {v === 'yes' ? 'Yes' : v === 'no' ? 'No' : 'N/A'}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+      {showPartnerFields && (
+        <>
+          <fieldset className="fieldset fieldset--inline">
+            <legend>Protection used</legend>
+            <div className="radio-group">
+              {PARTNER_PROTECTION_OPTIONS.map((v) => (
+                <label key={v} className="radio-pill">
+                  <input
+                    type="radio"
+                    name="protection"
+                    value={v}
+                    checked={protection === v}
+                    onChange={() => setProtection(v)}
+                  />
+                  {PROTECTION_LABELS[v]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <label>
+            Birth control method used
+            <select
+              value={birthControlMethod}
+              onChange={(e) =>
+                setBirthControlMethod(e.target.value as ActivityBirthControlMethod)
+              }
+            >
+              {ACTIVITY_BIRTH_CONTROL_METHODS.map((method) => (
+                <option key={method} value={method}>
+                  {ACTIVITY_BIRTH_CONTROL_LABELS[method]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
       )}
 
-      <label>
-        Satisfaction ({satisfaction}/10)
-        <input
-          type="range"
-          min={1}
-          max={10}
-          value={satisfaction}
-          onChange={(e) => setSatisfaction(Number(e.target.value))}
-        />
-      </label>
+      <fieldset className="fieldset">
+        <legend>Satisfaction</legend>
+        <label className="partner-multi__item">
+          <input
+            type="checkbox"
+            checked={recordSatisfaction}
+            onChange={(e) => setRecordSatisfaction(e.target.checked)}
+          />
+          <span>Record satisfaction</span>
+        </label>
+        {recordSatisfaction && (
+          <label>
+            Rating ({satisfaction}/10)
+            <input
+              type="range"
+              min={1}
+              max={10}
+              value={satisfaction}
+              onChange={(e) => setSatisfaction(Number(e.target.value))}
+            />
+          </label>
+        )}
+      </fieldset>
 
       <label>
         Notes

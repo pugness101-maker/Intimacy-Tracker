@@ -12,10 +12,14 @@ import {
 import {
   ACTIVITY_CATEGORIES,
   ACTIVITY_TYPE_LABELS,
-  isPartnerActivity,
   type Activity,
   type ActivityCategory,
 } from '../types';
+import {
+  formatBirthControlMethodText,
+  formatProtectionText,
+  formatSatisfactionText,
+} from '../lib/activityDisplay';
 import {
   activityMatchesCategory,
   formatActivitySchedule,
@@ -208,14 +212,14 @@ export function ActivityLog() {
                   <span className="activity-log-line__sep">•</span>
                   <span className="text-muted">{formatDateNumeric(a.date)}</span>
                 </div>
+                {a.location.trim() && (
+                  <p className="activity-card__location text-muted">{a.location}</p>
+                )}
                 <div className="activity-card__body">
                   <p>{formatActivitySchedule(a)}</p>
-                  <p>Satisfaction {a.satisfaction}/10</p>
-                  {isPartnerActivity(a.type) && a.protection !== 'na' && (
-                    <p className="text-muted">
-                      Protection: {a.protection === 'yes' ? 'Yes' : 'No'}
-                    </p>
-                  )}
+                  <p>{formatProtectionText(a.protection)}</p>
+                  <p>{formatBirthControlMethodText(a.birthControlMethod)}</p>
+                  <p>{formatSatisfactionText(a.satisfaction)}</p>
                   {a.notes && <p className="activity-card__notes">{a.notes}</p>}
                 </div>
                 <div className="activity-card__actions">

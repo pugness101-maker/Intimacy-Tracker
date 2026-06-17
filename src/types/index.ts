@@ -18,7 +18,93 @@ export type ActivityType =
 
 export type ActivityCategory = 'partner' | 'solo' | 'relationship' | 'other';
 
-export type ProtectionStatus = 'yes' | 'no' | 'na';
+export type ProtectionStatus = 'yes' | 'no' | 'unsure' | 'na';
+
+export type ActivityBirthControlMethod =
+  | 'none'
+  | 'condom'
+  | 'pill'
+  | 'iud'
+  | 'implant'
+  | 'shot'
+  | 'patch'
+  | 'ring'
+  | 'emergency_contraception'
+  | 'other';
+
+export type BirthControlMethodType =
+  | 'none'
+  | 'condom_only'
+  | 'pill'
+  | 'iud'
+  | 'implant'
+  | 'shot'
+  | 'patch'
+  | 'ring'
+  | 'emergency_contraception'
+  | 'fertility_awareness'
+  | 'other';
+
+export const ACTIVITY_BIRTH_CONTROL_METHODS: ActivityBirthControlMethod[] = [
+  'none',
+  'condom',
+  'pill',
+  'iud',
+  'implant',
+  'shot',
+  'patch',
+  'ring',
+  'emergency_contraception',
+  'other',
+];
+
+export const BIRTH_CONTROL_METHOD_TYPES: BirthControlMethodType[] = [
+  'none',
+  'condom_only',
+  'pill',
+  'iud',
+  'implant',
+  'shot',
+  'patch',
+  'ring',
+  'emergency_contraception',
+  'fertility_awareness',
+  'other',
+];
+
+export const ACTIVITY_BIRTH_CONTROL_LABELS: Record<ActivityBirthControlMethod, string> = {
+  none: 'None',
+  condom: 'Condom',
+  pill: 'Pill',
+  iud: 'IUD',
+  implant: 'Implant',
+  shot: 'Shot',
+  patch: 'Patch',
+  ring: 'Ring',
+  emergency_contraception: 'Emergency contraception',
+  other: 'Other',
+};
+
+export const BIRTH_CONTROL_METHOD_LABELS: Record<BirthControlMethodType, string> = {
+  none: 'None',
+  condom_only: 'Condom only',
+  pill: 'Pill',
+  iud: 'IUD',
+  implant: 'Implant',
+  shot: 'Shot',
+  patch: 'Patch',
+  ring: 'Ring',
+  emergency_contraception: 'Emergency contraception',
+  fertility_awareness: 'Fertility awareness',
+  other: 'Other',
+};
+
+export const PROTECTION_LABELS: Record<ProtectionStatus, string> = {
+  yes: 'Yes',
+  no: 'No',
+  unsure: 'Not sure',
+  na: 'N/A',
+};
 
 export type GoalPeriod = 'week' | 'month';
 
@@ -36,8 +122,10 @@ export interface Activity extends BaseRecord {
   type: ActivityType;
   partnerIds: string[];
   peopleCount: number | null;
-  satisfaction: number;
+  location: string;
+  satisfaction: number | null;
   protection: ProtectionStatus;
+  birthControlMethod: ActivityBirthControlMethod;
   notes: string;
 }
 
@@ -169,10 +257,18 @@ export interface StiTest extends BaseRecord {
 }
 
 export interface BirthControlReminder extends BaseRecord {
-  title: string;
-  schedule: string;
+  /** @deprecated Legacy field — use methodType */
+  title?: string;
+  /** @deprecated Legacy field */
+  schedule?: string;
+  /** @deprecated Legacy field — use reminderDate */
   nextDue?: string;
   notes: string;
+  methodType?: BirthControlMethodType;
+  startDate?: string;
+  endDate?: string;
+  reminderDate?: string;
+  active?: boolean;
 }
 
 export interface PeriodNote extends BaseRecord {

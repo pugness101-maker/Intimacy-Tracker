@@ -1,5 +1,5 @@
 import type { Activity, ActivityType, AppData, Partner } from '../types';
-import { isPartnerActivity } from '../types';
+import { BIRTH_CONTROL_METHOD_LABELS, isPartnerActivity } from '../types';
 import { getStiDashboardStats } from './sti';
 import {
   averageSatisfaction,
@@ -90,7 +90,7 @@ export function getPartnerHistory(
       const cur = map.get(partnerId) ?? { count: 0, dates: [], sat: [] };
       cur.count++;
       cur.dates.push(a.date);
-      cur.sat.push(a.satisfaction);
+      if (a.satisfaction != null) cur.sat.push(a.satisfaction);
       map.set(partnerId, cur);
     }
   }
@@ -185,6 +185,7 @@ export function getPeoplePerDayChart(
 export function getCondomUsageStats(activities: Activity[]): {
   yes: number;
   no: number;
+  unsure: number;
   na: number;
   applicable: number;
   percentProtected: number | null;
@@ -192,11 +193,13 @@ export function getCondomUsageStats(activities: Activity[]): {
   const partnerActivities = activities.filter((a) => isPartnerActivity(a.type));
   const yes = partnerActivities.filter((a) => a.protection === 'yes').length;
   const no = partnerActivities.filter((a) => a.protection === 'no').length;
+  const unsure = partnerActivities.filter((a) => a.protection === 'unsure').length;
   const na = partnerActivities.filter((a) => a.protection === 'na').length;
-  const applicable = yes + no;
+  const applicable = yes + no + unsure;
   return {
     yes,
     no,
+    unsure,
     na,
     applicable,
     percentProtected:
@@ -212,11 +215,14 @@ export function getDashboardSummary(data: AppData) {
 
   const upcomingHealth = [
     ...data.sexualHealth.birthControlReminders
-      .filter((r) => r.nextDue)
+      .filter((r) => r.active !== false)
+      .filter((r) => r.reminderDate || r.nextDue)
       .map((r) => ({
         type: 'reminder' as const,
-        date: r.nextDue!,
-        label: r.title,
+        date: r.reminderDate ?? r.nextDue!,
+        label: r.methodType
+          ? `Birth control: ${BIRTH_CONTROL_METHOD_LABELS[r.methodType]}`
+          : (r.title ?? 'Birth control reminder'),
       })),
     ...data.sexualHealth.stiTests
       .filter((t) => t.followUpDate)
@@ -287,12 +293,13 @@ export function getSatisfactionTrend(
   points = 12
 ): { label: string; value: number }[] {
   const sorted = [...activities]
+    .filter((a) => a.satisfaction != null)
     .sort((a, b) => -compareActivitiesByDateTime(a, b))
     .slice(-points);
 
   return sorted.map((a, i) => ({
     label: `${i + 1}`,
-    value: a.satisfaction,
+    value: a.satisfaction!,
   }));
 }
 

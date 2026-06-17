@@ -241,9 +241,10 @@ export function countByCategory(
 }
 
 export function averageSatisfaction(activities: Activity[]): number | null {
-  if (activities.length === 0) return null;
-  const sum = activities.reduce((s, a) => s + a.satisfaction, 0);
-  return Math.round((sum / activities.length) * 10) / 10;
+  const rated = activities.filter((a) => a.satisfaction != null);
+  if (rated.length === 0) return null;
+  const sum = rated.reduce((s, a) => s + a.satisfaction!, 0);
+  return Math.round((sum / rated.length) * 10) / 10;
 }
 
 export function getLastActivity(activities: Activity[]): Activity | null {

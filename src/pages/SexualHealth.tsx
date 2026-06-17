@@ -15,6 +15,9 @@ import {
   STI_RESULT_STATUSES,
   STI_TEST_LABELS,
   STI_TEST_TYPES,
+  BIRTH_CONTROL_METHOD_LABELS,
+  BIRTH_CONTROL_METHOD_TYPES,
+  type BirthControlMethodType,
   type BirthControlReminder,
   type DoctorAppointment,
   type PeriodNote,
@@ -22,6 +25,7 @@ import {
   type StiTest,
   type StiTestType,
 } from '../types';
+import { isLegacyBirthControlReminder } from '../lib/migrate';
 
 type HealthTab = 'sti' | 'birth' | 'period' | 'doctor';
 
@@ -51,7 +55,7 @@ export function SexualHealth() {
         <div className="condom-summary__stats">
           <span>Yes: {condom.yes}</span>
           <span>No: {condom.no}</span>
-          <span>N/A: {condom.na}</span>
+          <span>Not sure: {condom.unsure}</span>
           {condom.percentProtected !== null && (
             <span className="condom-summary__highlight">
               {condom.percentProtected}% protected when applicable
@@ -236,30 +240,24 @@ function BirthControlSection() {
   return (
     <HealthList
       emptyIcon="◇"
-      emptyTitle="No birth control reminders"
-      emptyDesc="Set reminders for pills, patches, or other methods."
+      emptyTitle="No birth control tracked"
+      emptyDesc="Track your method, dates, and reminders privately."
       items={data.sexualHealth.birthControlReminders}
       onAdd={() => setOpen(true)}
       renderItem={(item) => (
-        <HealthItemCard
+        <BirthControlCard
           key={item.id}
-          title={item.title}
-          subtitle={item.schedule}
-          body={
-            item.nextDue
-              ? `Next due: ${formatDate(item.nextDue)}${item.notes ? ` · ${item.notes}` : ''}`
-              : item.notes
-          }
+          item={item}
           onEdit={() => setEdit(item)}
           onDelete={() => confirmDelete(() => deleteBirthControl(item.id))}
         />
       )}
       modal={
         <>
-          <Modal open={open} onClose={() => setOpen(false)} title="Add reminder">
+          <Modal open={open} onClose={() => setOpen(false)} title="Add birth control">
             <BirthForm onSave={addBirthControl} onDone={() => setOpen(false)} />
           </Modal>
-          <Modal open={!!edit} onClose={() => setEdit(null)} title="Edit reminder">
+          <Modal open={!!edit} onClose={() => setEdit(null)} title="Edit birth control">
             {edit && (
               <BirthForm
                 initial={edit}
@@ -271,6 +269,57 @@ function BirthControlSection() {
         </>
       }
     />
+  );
+}
+
+function BirthControlCard({
+  item,
+  onEdit,
+  onDelete,
+}: {
+  item: BirthControlReminder;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const isLegacy = isLegacyBirthControlReminder(item);
+  const title = item.methodType
+    ? BIRTH_CONTROL_METHOD_LABELS[item.methodType]
+    : (item.title ?? 'Birth control');
+
+  return (
+    <Card className="health-item">
+      <div className="birth-control-card__header">
+        <h3>{title}</h3>
+        {item.active === false ? (
+          <span className="badge badge--soft">Inactive</span>
+        ) : (
+          <span className="badge">Active</span>
+        )}
+      </div>
+      {isLegacy ? (
+        <>
+          {item.schedule && <p className="text-muted">{item.schedule}</p>}
+          {item.nextDue && <p>Reminder: {formatDate(item.nextDue)}</p>}
+        </>
+      ) : (
+        <>
+          {item.startDate && (
+            <p className="text-muted">Started: {formatDate(item.startDate)}</p>
+          )}
+          {item.endDate && <p className="text-muted">Ends: {formatDate(item.endDate)}</p>}
+          {item.reminderDate && <p>Reminder: {formatDate(item.reminderDate)}</p>}
+        </>
+      )}
+      {item.notes && <p>{item.notes}</p>}
+      <div className="activity-card__actions">
+        <button type="button" className="btn btn--sm btn--ghost" onClick={onEdit}>
+          Edit
+        </button>
+        <button type="button" className="btn btn--sm btn--danger" onClick={onDelete}>
+          Delete
+        </button>
+      </div>
+    </Card>
   );
 }
 
@@ -633,28 +682,105 @@ function BirthForm({
   onSave: (v: Omit<BirthControlReminder, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onDone: () => void;
 }) {
-  const [title, setTitle] = useState(initial?.title ?? '');
-  const [schedule, setSchedule] = useState(initial?.schedule ?? '');
-  const [nextDue, setNextDue] = useState(initial?.nextDue ?? '');
+  const isLegacy = initial ? isLegacyBirthControlReminder(initial) : false;
+  const [methodType, setMethodType] = useState<BirthControlMethodType>(
+    initial?.methodType ?? 'pill'
+  );
+  const [startDate, setStartDate] = useState(initial?.startDate ?? '');
+  const [endDate, setEndDate] = useState(initial?.endDate ?? '');
+  const [reminderDate, setReminderDate] = useState(
+    initial?.reminderDate ?? initial?.nextDue ?? ''
+  );
   const [notes, setNotes] = useState(initial?.notes ?? '');
+  const [active, setActive] = useState(initial?.active !== false);
+  const [legacyTitle, setLegacyTitle] = useState(initial?.title ?? '');
+  const [legacySchedule, setLegacySchedule] = useState(initial?.schedule ?? '');
 
   return (
     <HealthForm
       onSubmit={() => {
-        onSave({
-          title,
-          schedule,
-          nextDue: nextDue || undefined,
-          notes,
-        });
+        if (isLegacy) {
+          onSave({
+            title: legacyTitle,
+            schedule: legacySchedule,
+            nextDue: reminderDate || undefined,
+            notes,
+            active,
+          });
+        } else {
+          onSave({
+            methodType,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+            reminderDate: reminderDate || undefined,
+            notes,
+            active,
+          });
+        }
         onDone();
       }}
       onCancel={onDone}
     >
-      <label>Title <input value={title} onChange={(e) => setTitle(e.target.value)} required /></label>
-      <label>Schedule <input value={schedule} onChange={(e) => setSchedule(e.target.value)} placeholder="Daily at 9am" /></label>
-      <label>Next due <input type="date" value={nextDue} onChange={(e) => setNextDue(e.target.value)} /></label>
-      <label>Notes <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></label>
+      {isLegacy ? (
+        <>
+          <label>
+            Title <input value={legacyTitle} onChange={(e) => setLegacyTitle(e.target.value)} required />
+          </label>
+          <label>
+            Schedule{' '}
+            <input
+              value={legacySchedule}
+              onChange={(e) => setLegacySchedule(e.target.value)}
+              placeholder="Daily at 9am"
+            />
+          </label>
+          <label>
+            Next due{' '}
+            <input type="date" value={reminderDate} onChange={(e) => setReminderDate(e.target.value)} />
+          </label>
+        </>
+      ) : (
+        <>
+          <label>
+            Method type
+            <select
+              value={methodType}
+              onChange={(e) => setMethodType(e.target.value as BirthControlMethodType)}
+            >
+              {BIRTH_CONTROL_METHOD_TYPES.map((method) => (
+                <option key={method} value={method}>
+                  {BIRTH_CONTROL_METHOD_LABELS[method]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Start date <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </label>
+          <label>
+            End / expiration date{' '}
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </label>
+          <label>
+            Reminder date{' '}
+            <input type="date" value={reminderDate} onChange={(e) => setReminderDate(e.target.value)} />
+          </label>
+        </>
+      )}
+      <label className="toggle-row">
+        <span>Active</span>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={active}
+            onChange={(e) => setActive(e.target.checked)}
+          />
+          <span className="toggle__slider" />
+        </label>
+      </label>
+      <label>
+        Notes <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+      </label>
     </HealthForm>
   );
 }
